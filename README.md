@@ -1,2 +1,4 @@
-# k1_mcu_flasher
-Creality K1 MCU flasher pure python implementation
+# Creality K1 MCU flasher
+## Pure python implementation
+
+Command flags and parameters compatible with official mcu_util flasher.
