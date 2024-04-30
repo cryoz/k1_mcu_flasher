@@ -280,15 +280,10 @@ def get_version(args):
     if ser:
         try:
             try:
-                if args.handshake:
-                    handshake_check = _handshake(ser, v)
-                else:
-                    handshake_check = True
-                if handshake_check is not None and handshake_check:
-                    ver = _get_version(ser, v)
-                    if ver is not None:
-                        print(f'FW Version: {ver}')
-                        return 1
+                ver = _get_version(ser, v)
+                if ver is not None:
+                    print(f'FW Version: {ver}')
+                    return 1
             except Exception as e:
                 print(f'Exception! Port {args.port} with error {str(e)}')
                 result = 0
@@ -305,20 +300,15 @@ def app_start(args):
     if ser:
         try:
             try:
-                if args.handshake:
-                    handshake_check = _handshake(ser, v)
-                else:
-                    handshake_check = True
-                if handshake_check:
-                    for retries in range(3):
-                        res = _app_start(ser, v)
-                        if res is not None:
-                            if res == 1:
-                                debug('App started', v)
-                                return 0
-                            else:
-                                debug(f'App start failed, retry #{retries+1}', v)
-                    debug('App start failed after 3 retries', v)
+                for retries in range(3):
+                    res = _app_start(ser, v)
+                    if res is not None:
+                        if res == 1:
+                            debug('App started', v)
+                            return 0
+                        else:
+                            debug(f'App start failed, retry #{retries+1}', v)
+                debug('App start failed after 3 retries', v)
                 return 1
             except Exception as e:
                 print(f'Exception! Port {args.port} with error {str(e)}')
@@ -339,24 +329,19 @@ def update(args):
         try:
             try:
                 with open(file, 'rb') as f:
-                    if args.handshake:
-                        handshake_check = _handshake(ser, v)
+                    ss = _get_sector_size(ser, v)
+                    if ss is None:
+                        debug('Cannot get sector size', v)
                     else:
-                        handshake_check = True
-                    if handshake_check:
-                        ss = _get_sector_size(ser, v)
-                        if ss is None:
-                            debug('Cannot get sector size', v)
-                        else:
-                            for retries in range(3):
-                                res = _flash_fw(ser, v, ss, f)
-                                if res is not None:
-                                    if res == 1:
-                                        debug('Firmware updated successfully', v)
-                                        return 0
-                                    else:
-                                        debug(f'FW flash failed, retry #{retries+1}', v)
-                            debug('FW Update failed after 3 retries', v)
+                        for retries in range(3):
+                            res = _flash_fw(ser, v, ss, f)
+                            if res is not None:
+                                if res == 1:
+                                    debug('Firmware updated successfully', v)
+                                    return 0
+                                else:
+                                    debug(f'FW flash failed, retry #{retries+1}', v)
+                        debug('FW Update failed after 3 retries', v)
                 return 1
             except Exception as e:
                 print(f'Exception! Port {args.port} with error {str(e)}')
