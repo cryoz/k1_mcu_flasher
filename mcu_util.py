@@ -4,7 +4,7 @@
 # MCU Update script for Creality K1 / K1C / K1 MAX printers
 ###########################################################
 # Pure python implementation
-# v0.1
+# v0.2
 # (c) 2024 CryoZ
 ###########################################################
 
@@ -15,6 +15,7 @@ from pathlib import Path
 import argparse
 import sys
 import serial
+from time import sleep
 
 
 # Compute simple CRC
@@ -31,6 +32,28 @@ def debug(msg: str, verbose: bool):
         return
     print(msg)
 
+
+# Send magic string for enter bootloader from working app
+def _send_magic(ser: serial.Serial, v: bool):
+    result = None
+    magic = b'\x20\x1c\x20\x52\x65\x71\x75\x65\x73\x74\x20\x53\x65\x72\x69\x61\x6c\x20\x42\x6f\x6f\x74\x6c\x6f\x61\x64\x65\x72\x21\x21\x20\x7e'
+    try:
+        if not ser.is_open:
+            debug(f'open port {ser.name}', v)
+            ser.open()
+        debug('send magic', v)
+        if ser.write(magic) == 0:
+            print('Cannot write data!')
+            return 0
+    except serial.SerialTimeoutException:
+        print(f'Timeout serial {ser.name}')
+        result = 0
+    except serial.SerialException as e:
+        print(f'Error opening serial {ser.name} with error {e}')
+        result = 0
+    finally:
+        ser.close()
+    return result
 
 # Handshake stage:
 #  bootloader waiting 15 secs after startup for handshake, then launch app
@@ -244,10 +267,10 @@ def _flash_fw(ser: serial.Serial, v: bool, ss: int, f: BufferedReader):
     return result
 
 
-def open_port(port):
+def open_port(port, baudrate=115200):
     ser = None
     try:
-        ser = serial.Serial(port, baudrate=115200, timeout=2.0)
+        ser = serial.Serial(port, baudrate=baudrate, timeout=2.0)
     except serial.SerialException as e:
         print(f'Error opening serial {port} with error {e}')
     return ser
@@ -365,7 +388,12 @@ parser.add_argument('-u', '--update', action='store_true', help='Update firmware
 
 parser.add_argument('-s', '--appstart', action='store_true', help='Attempt to start fw')
 parser.add_argument('-g', '--version', action='store_true', help='Get version')
-
+parser.add_argument('-b', '--bootloader', action='store_true', help='Attempt to enter bootloader by serial')
+parser.add_argument('-bs',
+                    '--bootloader-baudrate',
+                    type=int,
+                    default=230400,
+                    help='Attempt to enter bootloader by serial')
 # General workflow with bootloader operations:
 # 1. handshake
 # 2. get version
@@ -378,6 +406,22 @@ parser.add_argument('-g', '--version', action='store_true', help='Get version')
 
 args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
 exit_code = 0
+if args.bootloader:
+    exit_code = 234
+    attempts = 5
+    for _ in range(5):
+        ser = open_port(args.port, args.bootloader_baudrate)
+        _send_magic(ser, args.verbose)
+        sleep(1)
+        result = handshake(args)
+        if result == 1:
+            exit_code = 1
+            print('Successful entered bootloader!')
+            break
+    if exit_code == 234:
+        print('Cannot enter bootloader, is supported firmware flashed? Exiting...')
+        sys.exit(exit_code)
+
 if args.handshake:
     exit_code = handshake(args)
 if args.version:

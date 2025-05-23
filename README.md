@@ -22,3 +22,6 @@ Examples:
 - Startup firmware (if not started yet):
 
     `mcu_util.py -c -i /dev/ttyS1 -s`
+
+- Reboot to bootloader (previously flashed supported firmware and stopped klipper service required)
+    `mcu_util.py -b -i /dev/ttyS1 -br 230400 -g`
