@@ -389,11 +389,11 @@ parser.add_argument('-u', '--update', action='store_true', help='Update firmware
 parser.add_argument('-s', '--appstart', action='store_true', help='Attempt to start fw')
 parser.add_argument('-g', '--version', action='store_true', help='Get version')
 parser.add_argument('-b', '--bootloader', action='store_true', help='Attempt to enter bootloader by serial')
-parser.add_argument('-bs',
-                    '--bootloader-baudrate',
+parser.add_argument('-br',
+                    '--baudrate',
                     type=int,
                     default=230400,
-                    help='Attempt to enter bootloader by serial')
+                    help='Baudrate configured for klipper - needed for bootloader enter')
 # General workflow with bootloader operations:
 # 1. handshake
 # 2. get version
@@ -410,7 +410,7 @@ if args.bootloader:
     exit_code = 234
     attempts = 5
     for _ in range(5):
-        ser = open_port(args.port, args.bootloader_baudrate)
+        ser = open_port(args.port, args.baudrate)
         _send_magic(ser, args.verbose)
         sleep(1)
         result = handshake(args)
